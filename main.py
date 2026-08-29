@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 
 from config.settings import settings
+from middleware.request_middleware import request_middleware
 from routers.v1.router import router as v1_router
 from routers.v1.exception_testing_router import router as exception_test_router
 from routers.v2.router import router as v2_router
@@ -21,6 +22,8 @@ app = FastAPI(
     description="Enterprise Business Management System API",
 )
 
+
+app.middleware("http")(request_middleware)
 
 app.add_exception_handler(
     BusinessException,
