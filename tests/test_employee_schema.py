@@ -9,61 +9,57 @@ from schemas.employees.employee import (
 
 def test_valid_employee():
     employee = EmployeeCreate(
-        name="John Smith",
+        employee_code="EMP001",
+        full_name="John Smith",
         email="john@example.com",
         department="Engineering",
-        active=True,
     )
 
-    assert employee.name == "John Smith"
+    assert employee.employee_code == "EMP001"
+    assert employee.full_name == "John Smith"
     assert employee.department == "Engineering"
 
 
-def test_name_is_normalized():
+def test_strings_are_normalized():
     employee = EmployeeCreate(
-        name="  John Smith  ",
+        employee_code="  EMP001  ",
+        full_name="  John Smith  ",
         email="john@example.com",
         department="  Engineering  ",
     )
 
-    assert employee.name == "John Smith"
+    assert employee.employee_code == "EMP001"
+    assert employee.full_name == "John Smith"
     assert employee.department == "Engineering"
 
 
 def test_invalid_email():
     with pytest.raises(ValidationError):
         EmployeeCreate(
-            name="John Smith",
+            employee_code="EMP001",
+            full_name="John Smith",
             email="invalid-email",
             department="Engineering",
         )
 
 
-def test_name_too_short():
+def test_full_name_too_short():
     with pytest.raises(ValidationError):
         EmployeeCreate(
-            name="J",
+            employee_code="EMP001",
+            full_name="J",
             email="john@example.com",
             department="Engineering",
         )
 
 
-def test_name_must_contain_letter():
+def test_full_name_must_contain_letter():
     with pytest.raises(ValidationError):
         EmployeeCreate(
-            name="123456",
+            employee_code="EMP001",
+            full_name="123456",
             email="john@example.com",
             department="Engineering",
-        )
-
-
-def test_terminated_employee_cannot_be_active():
-    with pytest.raises(ValidationError):
-        EmployeeCreate(
-            name="John Smith",
-            email="john@example.com",
-            department="terminated",
-            active=True,
         )
 
 
@@ -73,5 +69,6 @@ def test_patch_allows_partial_update():
     )
 
     assert employee.department == "Finance"
-    assert employee.name is None
+    assert employee.employee_code is None
+    assert employee.full_name is None
     assert employee.email is None

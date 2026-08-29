@@ -1,12 +1,17 @@
-from typing import Self
+from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
-
-from schemas.common.response import APIResponse
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class EmployeeCreate(BaseModel):
-    name: str = Field(
+    employee_code: str = Field(
+        ...,
+        min_length=2,
+        max_length=50,
+    )
+
+    full_name: str = Field(
+        ...,
         min_length=2,
         max_length=100,
     )
@@ -14,75 +19,43 @@ class EmployeeCreate(BaseModel):
     email: EmailStr
 
     department: str = Field(
+        ...,
         min_length=2,
-        max_length=50,
+        max_length=100,
     )
 
-    active: bool = True
-
-    @field_validator("name", "department")
+    @field_validator(
+        "employee_code",
+        "full_name",
+        "department",
+        mode="before",
+    )
     @classmethod
-    def normalize_text(cls, value: str) -> str:
+    def normalize_strings(cls, value: str) -> str:
+        if not isinstance(value, str):
+            return value
+
         return value.strip()
 
-    @field_validator("name")
+    @field_validator("full_name")
     @classmethod
-    def validate_name(cls, value: str) -> str:
-        if not any(character.isalpha() for character in value):
-            raise ValueError("Name must contain at least one letter")
-
-        return value
-
-    @model_validator(mode="after")
-    def validate_employee(self) -> Self:
-        if self.active and self.department.lower() == "terminated":
+    def validate_full_name(cls, value: str) -> str:
+        if not any(char.isalpha() for char in value):
             raise ValueError(
-                "An employee in the terminated department cannot be active"
+                "full_name must contain at least one letter"
             )
 
-        return self
+        return value
 
 
 class EmployeeUpdate(BaseModel):
-    name: str = Field(
-        min_length=2,
-        max_length=100,
-    )
-
-    email: EmailStr
-
-    department: str = Field(
+    employee_code: str | None = Field(
+        default=None,
         min_length=2,
         max_length=50,
     )
 
-    active: bool
-
-    @field_validator("name", "department")
-    @classmethod
-    def normalize_text(cls, value: str) -> str:
-        return value.strip()
-
-    @field_validator("name")
-    @classmethod
-    def validate_name(cls, value: str) -> str:
-        if not any(character.isalpha() for character in value):
-            raise ValueError("Name must contain at least one letter")
-
-        return value
-
-    @model_validator(mode="after")
-    def validate_employee(self) -> Self:
-        if self.active and self.department.lower() == "terminated":
-            raise ValueError(
-                "An employee in the terminated department cannot be active"
-            )
-
-        return self
-
-
-class EmployeePatch(BaseModel):
-    name: str | None = Field(
+    full_name: str | None = Field(
         default=None,
         min_length=2,
         max_length=100,
@@ -93,44 +66,49 @@ class EmployeePatch(BaseModel):
     department: str | None = Field(
         default=None,
         min_length=2,
-        max_length=50,
+        max_length=100,
     )
 
-    active: bool | None = None
-
-    @field_validator("name", "department")
+    @field_validator(
+        "employee_code",
+        "full_name",
+        "department",
+        mode="before",
+    )
     @classmethod
-    def normalize_text(cls, value: str | None) -> str | None:
+    def normalize_update_strings(
+        cls,
+        value: str | None,
+    ) -> str | None:
         if value is None:
             return None
+
+        if not isinstance(value, str):
+            return value
 
         return value.strip()
 
-    @field_validator("name")
-    @classmethod
-    def validate_name(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
 
-        if not any(character.isalpha() for character in value):
-            raise ValueError("Name must contain at least one letter")
-
-        return value
+class EmployeePatch(EmployeeUpdate):
+    pass
 
 
 class EmployeeResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    name: str
+    employee_code: str
+    full_name: str
     email: EmailStr
     department: str
-    active: bool
+    created_at: datetime
+    updated_at: datetime
 
 
-class EmployeeListResponse(APIResponse[list[EmployeeResponse]]):
-    pass
+class EmployeeSingleResponse(BaseModel):
+    employee: EmployeeResponse
 
 
-class EmployeeSingleResponse(APIResponse[EmployeeResponse]):
-    pass
+class EmployeeListResponse(BaseModel):
+    items: list[EmployeeResponse]
+    total: int
