@@ -10,3 +10,6 @@ __pycache__/
 .env.dev
 .env.prod
 .env.test
+
+# Background task logs
+logs/

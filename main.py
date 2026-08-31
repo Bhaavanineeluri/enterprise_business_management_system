@@ -1,6 +1,9 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
-
+from middleware.request_middleware import request_middleware
+from middleware.security_headers import security_headers_middleware
 from config.settings import settings
 from middleware.request_middleware import request_middleware
 from routers.v1.router import router as v1_router
@@ -8,6 +11,7 @@ from routers.v1.exception_testing_router import router as exception_test_router
 from routers.v2.router import router as v2_router
 
 from exceptions import BusinessException
+from scheduler.scheduler import start_scheduler, stop_scheduler
 from exception_handlers import (
     business_exception_handler,
     validation_exception_handler,
@@ -16,15 +20,23 @@ from exception_handlers import (
 )
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_scheduler()
+    yield
+    stop_scheduler()
+
+
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="Enterprise Business Management System API",
+    lifespan=lifespan,
 )
 
 
 app.middleware("http")(request_middleware)
-
+app.middleware("http")(security_headers_middleware)
 app.add_exception_handler(
     BusinessException,
     business_exception_handler,

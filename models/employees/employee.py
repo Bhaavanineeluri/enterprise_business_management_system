@@ -1,9 +1,13 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Integer, String, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import DateTime, ForeignKey, Integer, String, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
+
+if TYPE_CHECKING:
+    from models.departments.department import Department
 
 
 class Employee(Base):
@@ -34,9 +38,15 @@ class Employee(Base):
         index=True,
     )
 
-    department: Mapped[str] = mapped_column(
-        String(100),
+    department_id: Mapped[int] = mapped_column(
+        ForeignKey("departments.id"),
         nullable=False,
+        index=True,
+    )
+
+    department: Mapped["Department"] = relationship(
+        "Department",
+        back_populates="employees",
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -50,4 +60,9 @@ class Employee(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+        index=True,
     )

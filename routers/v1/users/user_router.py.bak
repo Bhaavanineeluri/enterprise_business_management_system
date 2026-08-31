@@ -1,0 +1,174 @@
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.orm import Session
+
+from dependencies.auth import get_current_user
+from dependencies.database import get_db
+from dependencies.permission import require_permission
+
+from schemas.password_resets.password_reset import (
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
+)
+
+from services.password_resets.password_reset_service import (
+    create_password_reset_token,
+    reset_password,
+)
+
+from schemas.users.user import (
+    UserCreate,
+    UserLogin,
+    UserLoginResponse,
+    UserRegistrationResponse,
+    UserResponse,
+)
+
+from datetime import datetime, timedelta, timezone
+
+from config.settings import settings
+from security.jwt import create_access_token
+from services.sessions.session_service import create_session
+
+from services.users.user_service import (
+    authenticate_user,
+    create_user,
+)
+
+router = APIRouter(
+    prefix="/users",
+    tags=["Users"],
+)
+
+
+@router.post(
+    "/register",
+    response_model=UserRegistrationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def register_user_api(
+    user_data: UserCreate,
+    db: Session = Depends(get_db),
+):
+    user = create_user(
+        db,
+        user_data,
+    )
+
+    return {
+        "success": True,
+        "message": "User registered successfully",
+        "data": user,
+    }
+
+
+@router.post(
+    "/login",
+    response_model=UserLoginResponse,
+    status_code=status.HTTP_200_OK,
+)
+def login_user_api(
+    login_data: UserLogin,
+    db: Session = Depends(get_db),
+):
+    user = authenticate_user(
+        db,
+        login_data,
+    )
+
+    expires_at = datetime.now(timezone.utc).replace(
+        tzinfo=None
+    ) + timedelta(
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    )
+
+    session = create_session(
+        db=db,
+        user_id=user.id,
+        session_token="pending",
+        expires_at=expires_at,
+    )
+
+    access_token = create_access_token(
+        user_id=user.id,
+        username=user.username,
+        session_id=str(session.id),
+    )
+
+    session.session_token = access_token
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Login successful",
+        "data": user,
+        "access_token": access_token,
+        "token_type": "bearer",
+    }
+
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+)
+def get_current_user_api(
+    current_user=Depends(get_current_user),
+):
+    return current_user
+
+
+@router.get(
+    "/admin-test",
+    response_model=UserResponse,
+)
+def admin_test_api(
+    current_user=Depends(
+        require_permission("DELETE_USER")
+    ),
+):
+    return current_user
+
+
+
+
+@router.post(
+    "/forgot-password",
+    response_model=ForgotPasswordResponse,
+    status_code=status.HTTP_200_OK,
+)
+def forgot_password_api(
+    request: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+):
+    token = create_password_reset_token(
+        db,
+        str(request.email),
+    )
+
+    return {
+        "success": True,
+        "message": "Password reset token generated successfully",
+        "reset_token": token,
+    }
+
+
+@router.post(
+    "/reset-password",
+    response_model=ResetPasswordResponse,
+    status_code=status.HTTP_200_OK,
+)
+def reset_password_api(
+    request: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+):
+    reset_password(
+        db,
+        request.token,
+        request.new_password,
+    )
+
+    return {
+        "success": True,
+        "message": "Password reset successfully",
+    }

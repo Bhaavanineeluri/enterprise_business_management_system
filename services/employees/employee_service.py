@@ -1,107 +1,308 @@
+from datetime import datetime, timezone
+
+from sqlalchemy.orm import Session
+
+from models.employees.employee import Employee
+from repositories.employees import employee_repository
 from schemas.employees.employee import (
     EmployeeCreate,
     EmployeePatch,
     EmployeeUpdate,
 )
+from schemas.employees.bulk import BulkEmployeeUpdateItem
 
 
-employees: list[dict] = []
+def create_employee(
+    db: Session,
+    employee_data: EmployeeCreate,
+) -> Employee:
 
-next_employee_id = 1
+    employee = Employee(
+        employee_code=employee_data.employee_code,
+        full_name=employee_data.full_name,
+        email=str(employee_data.email),
+        department_id=employee_data.department_id,
+    )
 
-
-def create_employee(employee_data: EmployeeCreate) -> dict:
-    global next_employee_id
-
-    employee = {
-        "id": next_employee_id,
-        **employee_data.model_dump(),
-    }
-
-    employees.append(employee)
-    next_employee_id += 1
+    try:
+        employee_repository.create(db, employee)
+        db.commit()
+        db.refresh(employee)
+    except Exception:
+        db.rollback()
+        raise
 
     return employee
 
 
 def get_employees(
-    department: str | None = None,
+    db: Session,
+    department_id: int | None = None,
     name: str | None = None,
-    active: bool | None = None,
-) -> list[dict]:
+    email: str | None = None,
+    employee_code: str | None = None,
+    sort_by: str = "id",
+    sort_order: str = "asc",
+    offset: int = 0,
+    limit: int = 10,
+) -> tuple[list[Employee], int]:
 
-    result = employees
-
-    if department is not None:
-        result = [
-            employee
-            for employee in result
-            if employee["department"].lower() == department.lower()
-        ]
-
-    if name is not None:
-        result = [
-            employee
-            for employee in result
-            if name.lower() in employee["name"].lower()
-        ]
-
-    if active is not None:
-        result = [
-            employee
-            for employee in result
-            if employee["active"] == active
-        ]
-
-    return result
+    return employee_repository.get_all(
+        db,
+        department_id=department_id,
+        name=name,
+        email=email,
+        employee_code=employee_code,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        offset=offset,
+        limit=limit,
+    )
 
 
-def get_employee(employee_id: int) -> dict | None:
-    for employee in employees:
-        if employee["id"] == employee_id:
-            return employee
+def get_employee(
+    db: Session,
+    employee_id: int,
+) -> Employee | None:
 
-    return None
+    return employee_repository.get_by_id(
+        db,
+        employee_id,
+    )
 
 
 def update_employee(
+    db: Session,
     employee_id: int,
     employee_data: EmployeeUpdate,
-) -> dict | None:
+) -> Employee | None:
 
-    employee = get_employee(employee_id)
+    employee = employee_repository.get_by_id(
+        db,
+        employee_id,
+    )
 
     if employee is None:
         return None
 
-    employee.update(employee_data.model_dump())
+    update_data = employee_data.model_dump(
+        exclude_unset=True,
+    )
+
+    try:
+        employee_repository.update(
+            db,
+            employee,
+            update_data,
+        )
+        db.commit()
+        db.refresh(employee)
+    except Exception:
+        db.rollback()
+        raise
 
     return employee
 
 
 def patch_employee(
+    db: Session,
     employee_id: int,
     employee_data: EmployeePatch,
-) -> dict | None:
+) -> Employee | None:
 
-    employee = get_employee(employee_id)
+    employee = employee_repository.get_by_id(
+        db,
+        employee_id,
+    )
 
     if employee is None:
         return None
 
-    update_data = employee_data.model_dump(exclude_unset=True)
+    update_data = employee_data.model_dump(
+        exclude_unset=True,
+    )
 
-    employee.update(update_data)
+    try:
+        employee_repository.update(
+            db,
+            employee,
+            update_data,
+        )
+        db.commit()
+        db.refresh(employee)
+    except Exception:
+        db.rollback()
+        raise
 
     return employee
 
 
-def delete_employee(employee_id: int) -> bool:
-    employee = get_employee(employee_id)
+def delete_employee(
+    db: Session,
+    employee_id: int,
+) -> bool:
+
+    employee = employee_repository.get_by_id(
+        db,
+        employee_id,
+    )
 
     if employee is None:
         return False
 
-    employees.remove(employee)
+    try:
+        employee.deleted_at = datetime.now(timezone.utc)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
     return True
+
+
+def restore_employee(
+    db: Session,
+    employee_id: int,
+) -> Employee | None:
+
+    employee = (
+        db.query(Employee)
+        .filter(
+            Employee.id == employee_id,
+            Employee.deleted_at.is_not(None),
+        )
+        .first()
+    )
+
+    if employee is None:
+        return None
+
+    try:
+        employee.deleted_at = None
+        db.commit()
+        db.refresh(employee)
+    except Exception:
+        db.rollback()
+        raise
+
+    return employee
+
+
+def bulk_create_employees(
+    db: Session,
+    employees_data: list[EmployeeCreate],
+) -> list[Employee]:
+
+    employees = [
+        Employee(
+            employee_code=employee_data.employee_code,
+            full_name=employee_data.full_name,
+            email=str(employee_data.email),
+            department_id=employee_data.department_id,
+        )
+        for employee_data in employees_data
+    ]
+
+    try:
+        db.add_all(employees)
+        db.commit()
+
+        for employee in employees:
+            db.refresh(employee)
+
+    except Exception:
+        db.rollback()
+        raise
+
+    return employees
+
+
+def bulk_update_employees(
+    db: Session,
+    employees_data: list[EmployeeUpdateItem],
+) -> list[Employee]:
+
+    updated_employees: list[Employee] = []
+
+    try:
+        for item in employees_data:
+
+            employee = (
+                db.query(Employee)
+                .filter(
+                    Employee.id == item.employee_id,
+                    Employee.deleted_at.is_(None),
+                )
+                .first()
+            )
+
+            if employee is None:
+                raise ValueError(
+                    f"Employee with id {item.employee_id} not found"
+                )
+
+            update_data = item.data.model_dump(
+                exclude_unset=True,
+            )
+
+            for field, value in update_data.items():
+                if field == "email":
+                    value = str(value)
+
+                setattr(
+                    employee,
+                    field,
+                    value,
+                )
+
+            updated_employees.append(employee)
+
+        db.commit()
+
+        for employee in updated_employees:
+            db.refresh(employee)
+
+    except Exception:
+        db.rollback()
+        raise
+
+    return updated_employees
+
+
+def bulk_delete_employees(
+    db: Session,
+    employee_ids: list[int],
+) -> int:
+
+    deleted_count = 0
+
+    try:
+        for employee_id in employee_ids:
+
+            employee = (
+                db.query(Employee)
+                .filter(
+                    Employee.id == employee_id,
+                    Employee.deleted_at.is_(None),
+                )
+                .first()
+            )
+
+            if employee is None:
+                raise ValueError(
+                    f"Employee with id {employee_id} not found"
+                )
+
+            employee.deleted_at = datetime.now(
+                timezone.utc
+            ).replace(tzinfo=None)
+
+            deleted_count += 1
+
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
+
+    return deleted_count

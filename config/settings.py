@@ -41,6 +41,16 @@ class Settings(BaseSettings):
     DB_PASSWORD: str
     DB_NAME: str
 
+    PASSWORD_RESET_MINUTES: int = 15
+
+    MAX_LOGIN_ATTEMPTS: int = 5
+    ACCOUNT_LOCK_MINUTES: int = 15
+
+    JWT_SECRET_KEY: str
+    ENCRYPTION_KEY: str
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
     model_config = SettingsConfigDict(
         env_file=get_env_file(),
         env_file_encoding="utf-8",

@@ -1,0 +1,5 @@
+employee_code,full_name,email,department_id
+EMP004,Alice Johnson,alice.johnson@example.com,1
+EMP005,Bob Stone,not-an-email,1
+EMP006,Charlie Green,charlie.green@example.com,999
+EMP007,,david@example.com,1

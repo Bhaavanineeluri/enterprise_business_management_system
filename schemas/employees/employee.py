@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Self
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -18,16 +19,14 @@ class EmployeeCreate(BaseModel):
 
     email: EmailStr
 
-    department: str = Field(
+    department_id: int = Field(
         ...,
-        min_length=2,
-        max_length=100,
+        gt=0,
     )
 
     @field_validator(
         "employee_code",
         "full_name",
-        "department",
         mode="before",
     )
     @classmethod
@@ -63,16 +62,14 @@ class EmployeeUpdate(BaseModel):
 
     email: EmailStr | None = None
 
-    department: str | None = Field(
+    department_id: int | None = Field(
         default=None,
-        min_length=2,
-        max_length=100,
+        gt=0,
     )
 
     @field_validator(
         "employee_code",
         "full_name",
-        "department",
         mode="before",
     )
     @classmethod
@@ -100,15 +97,27 @@ class EmployeeResponse(BaseModel):
     employee_code: str
     full_name: str
     email: EmailStr
-    department: str
+    department_id: int
     created_at: datetime
     updated_at: datetime
 
 
+
 class EmployeeSingleResponse(BaseModel):
-    employee: EmployeeResponse
+    success: bool
+    message: str
+    data: EmployeeResponse
+
+
+class EmployeeListData(BaseModel):
+    items: list[EmployeeResponse]
+    total: int
+    page: int
+    page_size: int
+    pages: int
 
 
 class EmployeeListResponse(BaseModel):
-    items: list[EmployeeResponse]
-    total: int
+    success: bool
+    message: str
+    data: EmployeeListData
