@@ -230,12 +230,14 @@ def get_employee_api(
 def update_employee_api(
     employee_id: int,
     employee_data: EmployeeUpdate,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     employee = update_employee(
         db,
         employee_id,
         employee_data,
+        current_user.id,
     )
 
     if employee is None:

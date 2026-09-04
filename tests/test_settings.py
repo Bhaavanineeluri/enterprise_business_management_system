@@ -80,3 +80,22 @@ def test_invalid_database_port():
     )
 
     assert result.returncode != 0
+
+
+def test_weak_jwt_secret_rejected():
+    import pytest
+    from config.settings import Settings
+
+    with pytest.raises(ValueError, match="JWT_SECRET_KEY must be at least 32 characters"):
+        Settings(
+            APP_NAME="Test",
+            APP_VERSION="1.0",
+            ENVIRONMENT="testing",
+            DB_HOST="localhost",
+            DB_PORT=3306,
+            DB_USER="root",
+            DB_PASSWORD="password",
+            DB_NAME="test",
+            JWT_SECRET_KEY="short-secret",
+            ENCRYPTION_KEY="test-encryption-key",
+        )

@@ -12,6 +12,10 @@ async def security_headers_middleware(request: Request, call_next):
     )
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
+        "script-src 'self' https://cdn.jsdelivr.net; "
+        "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "font-src 'self' https://cdn.jsdelivr.net; "
         "frame-ancestors 'none'; "
         "object-src 'none';"
     )

@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     DB_PASSWORD: str
     DB_NAME: str
 
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_DB: int = 0
+
     PASSWORD_RESET_MINUTES: int = 15
 
     MAX_LOGIN_ATTEMPTS: int = 5
@@ -64,6 +68,26 @@ class Settings(BaseSettings):
         if not 1 <= value <= 65535:
             raise ValueError(
                 "DB_PORT must be between 1 and 65535"
+            )
+
+        return value
+
+    @field_validator("JWT_SECRET_KEY")
+    @classmethod
+    def validate_jwt_secret_key(cls, value: str) -> str:
+        if len(value) < 32:
+            raise ValueError(
+                "JWT_SECRET_KEY must be at least 32 characters long"
+            )
+
+        return value
+
+    @field_validator("ACCESS_TOKEN_EXPIRE_MINUTES")
+    @classmethod
+    def validate_access_token_expiry(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError(
+                "ACCESS_TOKEN_EXPIRE_MINUTES must be greater than 0"
             )
 
         return value

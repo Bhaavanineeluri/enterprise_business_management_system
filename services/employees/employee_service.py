@@ -10,6 +10,12 @@ from schemas.employees.employee import (
     EmployeeUpdate,
 )
 from schemas.employees.bulk import BulkEmployeeUpdateItem
+from services.record_history.record_history_service import create_record_history
+from services.redis.redis_service import (
+    get_cached_data,
+    invalidate_employee_cache,
+    set_cached_data,
+)
 
 
 def create_employee(
@@ -65,16 +71,46 @@ def get_employee(
     employee_id: int,
 ) -> Employee | None:
 
-    return employee_repository.get_by_id(
+    cache_key = f"employee:{employee_id}"
+
+    cached_employee = get_cached_data(cache_key)
+
+    if cached_employee is not None:
+        return cached_employee
+
+    employee = employee_repository.get_by_id(
         db,
         employee_id,
     )
+
+    if employee is None:
+        return None
+
+    employee_data = {
+        "id": employee.id,
+        "employee_code": employee.employee_code,
+        "full_name": employee.full_name,
+        "email": employee.email,
+        "department_id": employee.department_id,
+        "deleted_at": employee.deleted_at.isoformat()
+        if employee.deleted_at
+        else None,
+    }
+
+    set_cached_data(
+        cache_key,
+        employee_data,
+        expiration=300,
+    )
+
+    return employee
 
 
 def update_employee(
     db: Session,
     employee_id: int,
     employee_data: EmployeeUpdate,
+    user_id: int | None = None,
 ) -> Employee | None:
 
     employee = employee_repository.get_by_id(
@@ -89,14 +125,42 @@ def update_employee(
         exclude_unset=True,
     )
 
+    history_entries = []
+
+    for field_name, new_value in update_data.items():
+        old_value = getattr(employee, field_name, None)
+
+        if old_value != new_value:
+            history_entries.append(
+                {
+                    "field_name": field_name,
+                    "old_value": None if old_value is None else str(old_value),
+                    "new_value": None if new_value is None else str(new_value),
+                }
+            )
+
     try:
         employee_repository.update(
             db,
             employee,
             update_data,
         )
+
+        for entry in history_entries:
+            create_record_history(
+                db=db,
+                user_id=user_id,
+                resource="employees",
+                resource_id=employee.id,
+                field_name=entry["field_name"],
+                old_value=entry["old_value"],
+                new_value=entry["new_value"],
+            )
+
         db.commit()
         db.refresh(employee)
+        invalidate_employee_cache(employee_id)
+
     except Exception:
         db.rollback()
         raise
@@ -130,6 +194,7 @@ def patch_employee(
         )
         db.commit()
         db.refresh(employee)
+        invalidate_employee_cache(employee_id)
     except Exception:
         db.rollback()
         raise
@@ -153,6 +218,7 @@ def delete_employee(
     try:
         employee.deleted_at = datetime.now(timezone.utc)
         db.commit()
+        invalidate_employee_cache(employee_id)
     except Exception:
         db.rollback()
         raise
@@ -181,6 +247,7 @@ def restore_employee(
         employee.deleted_at = None
         db.commit()
         db.refresh(employee)
+        invalidate_employee_cache(employee_id)
     except Exception:
         db.rollback()
         raise
@@ -219,7 +286,7 @@ def bulk_create_employees(
 
 def bulk_update_employees(
     db: Session,
-    employees_data: list[EmployeeUpdateItem],
+    employees_data: list[BulkEmployeeUpdateItem],
 ) -> list[Employee]:
 
     updated_employees: list[Employee] = []

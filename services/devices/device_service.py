@@ -94,20 +94,18 @@ def revoke_device(
 
     device.is_active = False
 
-    active_sessions = (
-        db.query(UserSession)
-        .filter(
-            UserSession.user_id == user_id,
-            UserSession.is_active.is_(True),
-        )
-        .all()
-    )
-
     now = datetime.now()
 
-    for session in active_sessions:
-        session.is_active = False
-        session.revoked_at = now
+    db.query(UserSession).filter(
+        UserSession.user_id == user_id,
+        UserSession.is_active.is_(True),
+    ).update(
+        {
+            UserSession.is_active: False,
+            UserSession.revoked_at: now,
+        },
+        synchronize_session=False,
+    )
 
     db.commit()
 

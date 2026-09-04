@@ -36,7 +36,7 @@ app = FastAPI(
 
 
 app.middleware("http")(request_middleware)
-app.middleware("http")(security_headers_middleware)
+#app.middleware("http")(security_headers_middleware)
 app.add_exception_handler(
     BusinessException,
     business_exception_handler,

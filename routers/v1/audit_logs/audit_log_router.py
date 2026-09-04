@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from dependencies.database import get_db
@@ -31,9 +31,9 @@ def create_audit_log_endpoint(
     parsed_details = None
 
     if details:
-        try:
-            import json
+        import json
 
+        try:
             parsed_details = json.loads(details)
         except json.JSONDecodeError:
             parsed_details = {
@@ -57,10 +57,40 @@ def create_audit_log_endpoint(
     response_model=list[AuditLogResponse],
 )
 def get_audit_logs(
+    action: str | None = Query(
+        default=None,
+        description="Filter by audit action",
+    ),
+    user_id: int | None = Query(
+        default=None,
+        gt=0,
+        description="Filter by user ID",
+    ),
+    resource: str | None = Query(
+        default=None,
+        description="Filter by resource",
+    ),
     db: Session = Depends(get_db),
 ):
+    query = db.query(AuditLog)
+
+    if action is not None:
+        query = query.filter(
+            AuditLog.action == action
+        )
+
+    if user_id is not None:
+        query = query.filter(
+            AuditLog.user_id == user_id
+        )
+
+    if resource is not None:
+        query = query.filter(
+            AuditLog.resource == resource
+        )
+
     return (
-        db.query(AuditLog)
+        query
         .order_by(AuditLog.created_at.desc())
         .all()
     )

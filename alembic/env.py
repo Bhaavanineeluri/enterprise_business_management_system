@@ -6,12 +6,16 @@ from sqlalchemy import pool
 from alembic import context
 
 from database import Base
+from models.customers.customer import Customer
+from models.products.product import Product
+from models.webhooks.webhook import Webhook
 
 from models.employees.employee import Employee
 from models.users.user import User
 from models.password_resets.password_reset import PasswordReset
 from models.sessions.session import UserSession
 from models.audit_logs.audit_log import AuditLog
+from models.record_history.record_history import RecordHistory
 from models.devices.device import Device
 
 from config.settings import settings
