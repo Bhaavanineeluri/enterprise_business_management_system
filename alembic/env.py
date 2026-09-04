@@ -8,6 +8,7 @@ from alembic import context
 from database import Base
 from models.customers.customer import Customer
 from models.products.product import Product
+from models.payments.payment import Payment
 from models.webhooks.webhook import Webhook
 
 from models.employees.employee import Employee

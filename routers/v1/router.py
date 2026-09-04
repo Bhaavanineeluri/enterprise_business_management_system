@@ -11,6 +11,7 @@ from routers.v1.employees.employee_router import router as employee_router
 from routers.v1.customers.customer_router import router as customer_router
 from routers.v1.products.product_router import router as product_router
 from routers.v1.orders.order_router import router as order_router
+from routers.v1.payments.payment_router import router as payment_router
 from routers.v1.files.file_router import router as file_router
 from routers.v1.health.health_router import router as health_router
 from routers.v1.users.user_router import router as user_router
@@ -31,6 +32,7 @@ router.include_router(employee_router)
 router.include_router(customer_router)
 router.include_router(product_router)
 router.include_router(order_router)
+router.include_router(payment_router)
 router.include_router(file_router)
 router.include_router(health_router)
 router.include_router(user_router)
