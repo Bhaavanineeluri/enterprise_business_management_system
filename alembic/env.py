@@ -18,6 +18,8 @@ from models.sessions.session import UserSession
 from models.audit_logs.audit_log import AuditLog
 from models.record_history.record_history import RecordHistory
 from models.devices.device import Device
+from models.tasks.task import Task
+from models.reports.report import Report
 
 from config.settings import settings
 
@@ -82,3 +84,4 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+

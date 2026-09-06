@@ -18,6 +18,7 @@ from routers.v1.users.user_router import router as user_router
 from routers.v1.audit_logs.audit_log_router import router as audit_log_router
 from routers.v1.devices.device_router import router as device_router
 from routers.v1.record_history.record_history_router import router as record_history_router
+from routers.v1.reports.report_router import router as report_router
 from routers.v1.redis.redis_router import router as redis_router
 from routers.v1.external_api.external_api_router import router as external_api_router
 from routers.v1.async_processing.async_router import router as async_processing_router
@@ -60,3 +61,7 @@ router.include_router(async_processing_router)
 router.include_router(concurrent_operations_router)
 
 router.include_router(health_monitoring_router)
+
+from routers.v1.tasks.task_router import router as task_router
+router.include_router(task_router)
+router.include_router(report_router)
