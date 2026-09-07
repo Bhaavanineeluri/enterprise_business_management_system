@@ -55,19 +55,6 @@ class UserRegistrationResponse(BaseModel):
 class UserLogin(BaseModel):
     username: str
     password: str
-    device_id: str = Field(
-        ...,
-        min_length=1,
-        max_length=255,
-    )
-    device_name: str | None = Field(
-        default=None,
-        max_length=255,
-    )
-    device_type: str | None = Field(
-        default=None,
-        max_length=50,
-    )
 
 
 class UserLoginResponse(BaseModel):

@@ -27,10 +27,43 @@ async def lifespan(app: FastAPI):
     stop_scheduler()
 
 
+openapi_tags = [
+    {"name": "Authentication", "description": "User registration, login, logout, and password recovery APIs."},
+
+    {"name": "Users", "description": "Current user and user management APIs."},
+    {"name": "Employees", "description": "Employee management APIs."},
+    {"name": "Customers", "description": "Customer management APIs."},
+    {"name": "Products", "description": "Product and inventory management APIs."},
+    {"name": "Orders", "description": "Order management APIs."},
+    {"name": "Payments", "description": "Payment management APIs."},
+    {"name": "Tasks", "description": "Task management APIs."},
+    {"name": "Notifications", "description": "Notification management APIs."},
+    {"name": "Reports", "description": "Report management APIs."},
+    {"name": "Files", "description": "File upload, download, and management APIs."},
+    {"name": "Audit Logs", "description": "Audit logging APIs."},
+    {"name": "Record History", "description": "Historical record tracking APIs."},
+    {"name": "Devices", "description": "Device registration and management APIs."},
+    {"name": "Health", "description": "Application and database health APIs."},
+    {"name": "Health Monitoring", "description": "System health monitoring APIs."},
+    {"name": "Search", "description": "Global search APIs."},
+    {"name": "CSV Import", "description": "CSV import APIs."},
+    {"name": "CSV Export", "description": "CSV export APIs."},
+    {"name": "Background Tasks", "description": "Background task APIs."},
+    {"name": "Redis", "description": "Redis integration APIs."},
+    {"name": "Webhooks", "description": "Webhook management and delivery APIs."},
+    {"name": "External API", "description": "External API integration APIs."},
+    {"name": "AsyncProcessing", "description": "Asynchronous processing APIs."},
+    {"name": "Concurrent Operations", "description": "Concurrent operation APIs."},
+    {"name": "Rate Limit Test", "description": "Rate limiting test APIs."},
+    {"name": "Exception Testing", "description": "Exception handling test APIs."},
+    {"name": "Health V2", "description": "Version 2 health APIs."},
+]
+
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="Enterprise Business Management System API",
+    openapi_tags=openapi_tags,
     lifespan=lifespan,
 )
 
