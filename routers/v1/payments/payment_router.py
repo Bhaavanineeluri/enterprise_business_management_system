@@ -1,3 +1,4 @@
+from dependencies.auth import get_current_user
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
@@ -22,6 +23,7 @@ from services.payments.payment_service import (
 router = APIRouter(
     prefix="/payments",
     tags=["Payments"],
+    dependencies=[Depends(get_current_user)],
 )
 
 

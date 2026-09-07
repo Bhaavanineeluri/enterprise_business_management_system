@@ -36,6 +36,7 @@ from services.employees.employee_service import (
 router = APIRouter(
     prefix="/employees",
     tags=["Employees"],
+    dependencies=[Depends(get_current_user)],
 )
 
 

@@ -1,3 +1,4 @@
+from dependencies.auth import get_current_user
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
@@ -9,6 +10,7 @@ from services.search.search_service import search_records
 router = APIRouter(
     prefix="/search",
     tags=["Search"],
+    dependencies=[Depends(get_current_user)],
 )
 
 

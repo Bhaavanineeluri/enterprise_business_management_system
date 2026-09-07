@@ -1,3 +1,4 @@
+from dependencies.auth import get_current_user
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
@@ -18,7 +19,11 @@ from services.reports.report_service import (
     update_report,
 )
 
-router = APIRouter(prefix="/reports", tags=["Reports"])
+router = APIRouter(
+    prefix="/reports",
+    tags=["Reports"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 @router.post(

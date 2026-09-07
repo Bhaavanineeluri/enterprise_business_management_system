@@ -1,3 +1,4 @@
+from dependencies.auth import get_current_user
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
@@ -18,7 +19,11 @@ from services.tasks.task_service import (
     update_task,
 )
 
-router = APIRouter(prefix="/tasks", tags=["Tasks"])
+router = APIRouter(
+    prefix="/tasks",
+    tags=["Tasks"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 @router.post("", response_model=TaskSingleResponse, status_code=status.HTTP_201_CREATED)

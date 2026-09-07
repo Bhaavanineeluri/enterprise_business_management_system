@@ -1,3 +1,4 @@
+from dependencies.auth import get_current_user
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
@@ -10,6 +11,7 @@ from services.audit_logs.audit_log_service import create_audit_log
 router = APIRouter(
     prefix="/audit-logs",
     tags=["Audit Logs"],
+    dependencies=[Depends(get_current_user)],
 )
 
 

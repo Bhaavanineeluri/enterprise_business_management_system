@@ -1,3 +1,4 @@
+from dependencies.auth import get_current_user
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -11,6 +12,7 @@ from services.record_history.record_history_service import (
 router = APIRouter(
     prefix="/record-history",
     tags=["Record History"],
+    dependencies=[Depends(get_current_user)],
 )
 
 
